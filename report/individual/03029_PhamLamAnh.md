@@ -17,9 +17,9 @@ Ba ca mơ hồ (ảnh được chọn bằng script quét nhãn: box sát rìa, 
 
 |Ảnh|Tình huống|Quyết định|
 |-|-|-|
-|`drive\\\_002`|Xe sát hoặc bị cắt bởi rìa ảnh|Gán box nếu còn nhận ra lớp, box dừng ở mép ảnh|
-|`drive\\\_026`|Xe rất nhỏ ở xa|Gán nếu nhận ra lớp, bỏ nếu không|
-|`drive\\\_003`|Hai xe chồng nhau, một xe bị che một phần|Mỗi xe một box, xe bị che chỉ bao phần nhìn thấy|
+|`drive\_002`|Xe sát hoặc bị cắt bởi rìa ảnh|Gán box nếu còn nhận ra lớp, box dừng ở mép ảnh|
+|`drive\_026`|Xe rất nhỏ ở xa|Gán nếu nhận ra lớp, bỏ nếu không|
+|`drive\_003`|Hai xe chồng nhau, một xe bị che một phần|Mỗi xe một box, xe bị che chỉ bao phần nhìn thấy|
 
 Cách áp dụng schema: theo bảng 4 lớp trong README (bán tải thuộc `car`, minibus thuộc `bus`, van/minivan thuộc `van`).
 
@@ -28,10 +28,25 @@ Phần cần giảng viên làm rõ: ngưỡng kích thước tối thiểu củ
 ## 3\. Annotation và self-QC
 
 * Số file nhãn train: 50
-* Cách tạo nhãn: tự động bằng YOLOv8s pretrained (COCO), `conf=0.45`, qua `tools/auto\\\_label.py`, ánh xạ COCO car/bus/truck sang id trong `data.yaml`. **Chưa sửa tay trong CVAT.** COCO không có lớp `van` nên bộ nhãn train không có nhãn `van`.
-* Kết quả checker (`tools/check\\\_yolo\\\_labels.py`): ĐẠT cấu trúc, 50/50 file nhãn hợp lệ.
+* Cách tạo nhãn: tự động bằng YOLOv8s pretrained (COCO), `conf=0.45`, qua `tools/auto\_label.py`, ánh xạ COCO car/bus/truck sang id trong `data.yaml`. **Chưa sửa tay trong CVAT.** COCO không có lớp `van` nên bộ nhãn train không có nhãn `van`.
+* Kết quả checker (`tools/check\_yolo\_labels.py`): ĐẠT cấu trúc, 50/50 file nhãn hợp lệ.
 * Danh sách ít nhất 10 ảnh đã rà bằng mắt:drive\_004, drive\_05, drive\_006,drive\_007,drive\_008,drive\_009,drive\_010,drive\_011,drive\_012,drive\_013,drive\_014,drive\_015,drive\_016,drive\_017,drive\_018,drive\_019.
 * Lỗi phát hiện khi rà và cách sửa:
+
+\- Trong 16 ảnh: gold 229 box (car 187, truck 20, bus 7, van 15); model 241 box; khớp đúng 142; thừa 99; thiếu 87.
+
+&#x20; - \*\*Sai lớp (31 box):\*\* đúng vị trí (IoU >= 0.5) nhưng sai lớp, chiếm 31/99 box thừa. Gold có 15 box `van` trong khi model không sinh được `van` (COCO không có lớp này). Phân bố nhầm lớp: \_\_\_\_ (dán từ script).
+
+&#x20; - \*\*Xe rất nhỏ (diện tích < 0.3% ảnh):\*\* 26/55 box bị bỏ sót và 28/68 box thừa là box rất nhỏ.
+
+&#x20; - \*\*Box chạm mép ảnh:\*\* 20/68 box thừa chạm mép ảnh, chỉ 3 box thiếu chạm mép; model vẽ xe bị cắt ở mép mà gold không có box tương ứng.
+
+&#x20; - Box khớp được vẽ chặt: mean IoU toàn bộ 50 ảnh = 0.8586, nên lỗi chủ yếu là số lượng và lớp, không phải độ chặt của box.
+
+&#x20;- Quan sát khi mở ảnh (drive\_004, drive\_005): \_\_\_\_ .
+
+&#x20;- Cách sửa: chưa sửa nhãn trong CVAT; đã thử `conf` 0.25 đến 0.55, F1 tối đa 0.5826.
+
 * Commit khóa nhãn ban đầu: `afa1492` (Add labels, guideline, evaluation, report draft). Commit này sau đó bị lỗi xóa nhầm file gốc do lệnh `git reset --soft`, đã khôi phục bằng commit "Restore original lab files"; nhãn không đổi.
 
 ## 4\. Gold QC và rework
@@ -58,8 +73,8 @@ Rework: **chưa thực hiện**. Chưa kiểm FP/FN theo từng ảnh nên chưa
 ## 5\. Kết quả YOLO
 
 * Runtime: Colab **CPU** (Intel Xeon 2.20GHz), Ultralytics 8.4.208, Python 3.13.18, torch 2.14.1+cpu. Model: YOLO26n.
-* Tham số thay đổi so với notebook: bỏ dòng `assert 'sui462003' not in REPO\\\_URL` vì chặn nhầm repo của chính mình (tên tài khoản trùng chuỗi bị chặn); thêm dòng định nghĩa `eval\\\_images` ở cell đánh giá vì biến chưa được định nghĩa.
-* Best checkpoint: đường dẫn trong phiên Colab, lấy từ `model\\\_eval\\\_metrics.json` (không nộp file `.pt`).
+* Tham số thay đổi so với notebook: bỏ dòng `assert 'sui462003' not in REPO\_URL` vì chặn nhầm repo của chính mình (tên tài khoản trùng chuỗi bị chặn); thêm dòng định nghĩa `eval\_images` ở cell đánh giá vì biến chưa được định nghĩa.
+* Best checkpoint: đường dẫn trong phiên Colab, lấy từ `model\_eval\_metrics.json` .
 
 Kết quả trên 10 ảnh eval (113 vật thể), lấy từ log `val`:
 
@@ -77,13 +92,13 @@ Kết quả trên 10 ảnh eval (113 vật thể), lấy từ log `val`:
 |bus|2|2|0.040|0.500|0.033|0.023|
 |van|6|12|1.000|0.000|0.036|0.019|
 
-Ảnh và chỉ số: `assets/eval\\\_predictions/visuals/` và `assets/yolo26\\\_runs/vehicle\\\_eval/` (confusion matrix, PR curve). Ảnh minh họa cụ thể: \_\_\_\_ (điền tên ảnh eval có `van` sau khi tự mở xem).
+Ảnh và chỉ số: `assets/eval\_predictions/visuals/` và `assets/yolo26\_runs/vehicle\_eval/` (confusion matrix, PR curve). Ảnh minh họa cụ thể: \_\_\_\_ (điền tên ảnh eval có `van` sau khi tự mở xem).
 
 Trả lời bốn câu hỏi cuối notebook:
 
 1. **Lớp recall thấp nhất:** `van`, recall = 0 trên 12 vật thể ở 6 ảnh eval. Dữ kiện hỗ trợ: nhãn train do model COCO sinh nên không có nhãn `van` nào, model không có dữ liệu để học lớp này. Ảnh minh họa: \_\_\_\_ .
 2. **mAP50 cao nhưng mAP50–95 thấp:** cần kiểm độ chặt của box (box lỏng/lệch sẽ đạt IoU 0.5 nhưng không đạt IoU cao), tính nhất quán khi vẽ box vật thể bị che/cắt rìa, và box tự động có đúng sát thân xe không. Trong lần chạy này mAP50 (0.308) và mAP50–95 (0.212) đều thấp, và lớp `car` giảm từ 0.779 xuống 0.519, nên box cũng cần kiểm.
-3. **Lỗi class liên quan guideline:** `van` không được nhận ra vì train không có nhãn `van`; có thể bị đoán thành `car` hoặc `truck`. Cần kiểm trên confusion matrix (`assets/yolo26\\\_runs/vehicle\\\_eval/`) xem `van` bị nhầm sang lớp nào. Guideline có ghi `van` thân cao một khối, nhưng nhãn train không áp dụng được điều đó. Lớp `bus` (2 vật thể) và `truck` (5 vật thể) có quá ít mẫu nên số liệu nhiễu.
+3. **Lỗi class liên quan guideline:** `van` không được nhận ra vì train không có nhãn `van`; có thể bị đoán thành `car` hoặc `truck`. Cần kiểm trên confusion matrix (`assets/yolo26\_runs/vehicle\_eval/`) xem `van` bị nhầm sang lớp nào. Guideline có ghi `van` thân cao một khối, nhưng nhãn train không áp dụng được điều đó. Lớp `bus` (2 vật thể) và `truck` (5 vật thể) có quá ít mẫu nên số liệu nhiễu.
 4. **Vì sao không dùng ảnh eval để train:** nếu dùng, chỉ số đo trên chính dữ liệu đã học nên không phản ánh khả năng tổng quát hóa. Trong notebook, 10 ảnh eval làm validation (chọn best checkpoint theo chỉ số trên tập này) và đánh giá cuối cùng.
 
 ## 6\. Khó khăn và cách xử lý
@@ -94,18 +109,18 @@ Trả lời bốn câu hỏi cuối notebook:
 |Deploy Nuclio|Lỗi cài `msgpack` sau khi nâng pip/setuptools|Bỏ upgrade pip, cài sẵn `nuclio-sdk msgpack`|Build qua|
 |Deploy Nuclio|Timeout/hash lỗi khi tải torch|Thêm `--default-timeout`, `--retries`, đổi mạng|Build xong|
 |Deploy Nuclio|Thiếu image `gcr.io/iguazio/alpine:3.17`|Pull `alpine:3.17` và gắn tag|Chưa xác nhận deploy thành công; chuyển sang chạy YOLO trực tiếp|
-|Chấm nhãn lần đầu|`student\\\_boxes = 0`, F1 = 0|Thư mục nhãn trống; sinh nhãn bằng `auto\\\_label.py`|F1 = 0.54|
-|`auto\\\_label.py`|Thiếu module `ultralytics`|Tạo virtualenv `yolo-env`|Chạy được|
+|Chấm nhãn lần đầu|`student\_boxes = 0`, F1 = 0|Thư mục nhãn trống; sinh nhãn bằng `auto\_label.py`|F1 = 0.54|
+|`auto\_label.py`|Thiếu module `ultralytics`|Tạo virtualenv `yolo-env`|Chạy được|
 |Nâng F1|Chỉnh `conf` chỉ đạt tối đa 0.58|Chọn `conf=0.45`|Chưa đạt 0.80|
-|Git|`git init` nhầm ở `C:\\\\Users\\\\laman`; password bị từ chối|Xóa `.git` sai chỗ; dùng Personal Access Token|Push được|
+|Git|`git init` nhầm ở `C:\\\\Users\\laman`; password bị từ chối|Xóa `.git` sai chỗ; dùng Personal Access Token|Push được|
 |Git|`reset --soft` làm commit xóa nhầm file gốc|Commit lại bằng `git add -A`|Khôi phục đủ file|
-|Colab|`assert` chặn nhầm URL repo; `NameError: eval\\\_images`|Bỏ assert; thêm định nghĩa `eval\\\_images`|Chạy được|
+|Colab|`assert` chặn nhầm URL repo; `NameError: eval\_images`|Bỏ assert; thêm định nghĩa `eval\_images`|Chạy được|
 
 ## 7\. Tự đánh giá theo rubric
 
 (Chưa đối chiếu từng mục `RUBRIC.md`; bảng dưới là đánh giá sơ bộ.)
 
-* Đã có: 50 file nhãn đạt checker, `GUIDELINE\\\_MINI.md`, JSON đánh giá annotation, Colab đã chạy và chỉ số model trên 10 ảnh eval.
+* Đã có: 50 file nhãn đạt checker, `GUIDELINE\_MINI.md`, JSON đánh giá annotation, Colab đã chạy và chỉ số model trên 10 ảnh eval.
 * Chưa đạt: F1 annotation 0.58 so với yêu cầu 0.80 (lab coach xác nhận bằng lời mức này chấp nhận được).
 * Chưa làm: rà bằng mắt tối thiểu 10 ảnh, sửa tay trong CVAT, rework, nhãn `van`.
 * Hạn chế: nhãn train do model tự sinh, nên chất lượng model YOLO phụ thuộc vào model gán nhãn, đặc biệt lớp `van`.
